@@ -1,0 +1,117 @@
+<!doctype html>
+<html class="no-js">
+<head>
+  <meta charset="utf-8">
+  <title>maproulette metrics</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+  <!-- build:css styles/vendor.css -->
+  <!-- bower:css -->
+  <link rel="stylesheet" href="../bower_components/nvd3/src/nv.d3.css" />
+  <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.css" />
+  <link rel="stylesheet" href="../bower_components/bootstrap-datepicker/css/datepicker.css" />
+  <link rel="stylesheet" href="../bower_components/bootstrap-datepicker/css/datepicker3.css" />
+  <!-- endbower -->
+  <!-- endbuild -->
+  <!-- build:css(.tmp) styles/main.css -->
+  <link rel="stylesheet" href="styles/main.css">
+  <!-- endbuild -->
+  <!-- build:js scripts/vendor/modernizr.js -->
+  <script src="../bower_components/modernizr/modernizr.js"></script>
+  <!-- endbuild -->
+
+</head>
+<body>
+        <!--[if lt IE 10]>
+        <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="#">MapRoulette Metrics</a>
+            </div>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <ul class="nav nav-tabs">
+            <li class="active"><a href="#overall" data-toggle="tab">Overall</a></li>
+            <li><a href="#challenge" data-toggle="tab">By Challenge</a></li>
+            <li><a href="#user" data-toggle="tab">By User</a></li>
+            <li><a href="#settings" data-toggle="tab">Settings</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade in active" id="overall">
+                <div class="container">
+                    <h1>Overall statistics</h1>
+                    <svg style='height:500px; width:100%' />
+                </div><!-- /.container -->
+            </div>
+            <div class="tab-pane fade" id="challenge">
+                <div class="container">
+                    <h1>Challenge statistics</h1>
+                        <select data-placeholder="Select a challenge" class="chosen-select" id="challenge-select">
+                        </select>
+                    </div>
+                    <svg style='height:500px; width:100%' />
+                </div><!-- /.container -->
+            </div>
+            <div class="tab-pane fade" id="user">
+                <div class="container">
+                    <h1>User statistics</h1>
+                    <svg style='height:500px; width:100%' />
+                </div><!-- /.container -->
+            </div>
+            <div class="tab-pane fade" id="settings">
+                <div class="container">
+                    <h1>Settings</h1>
+                    <div class="row">
+                        <div class="container" id="datepicker-container">
+                            <div class="input-daterange input-group" id="datepicker">
+                                <input type="text" class="input-sm form-control" name="start" />
+                                <span class="input-group-addon">to</span>
+                                <input type="text" class="input-sm form-control" name="end" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="container">
+                        <div class="btn-group" data-toggle="buttons">
+                            <label class="btn btn-default">
+                                <input type="radio" name="renderas" id="table"> Table
+                            </label>
+                            <label class="btn btn-default">
+                                <input type="radio" name="renderas" id="chart"> Chart
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+<!-- build:js scripts/vendor.js -->
+<!-- bower:js -->
+<script src="../bower_components/jquery/dist/jquery.js"></script>
+<script src="../bower-components/chosen/chosen.jquery.js"></script>
+<script src="../bower_components/d3/d3.js"></script>
+<script src="../bower_components/nvd3/nv.d3.js"></script>
+<script src="../bower_components/bootstrap/dist/js/bootstrap.js"></script>
+<script src="../bower_components/bootstrap/js/dropdown.js"></script>
+<script src="../bower_components/bootstrap-datepicker/js/bootstrap-datepicker.js"></script>
+<!-- endbower -->
+<!-- endbuild -->
+
+<!-- build:js({app,.tmp}) scripts/main.js -->
+<script src="scripts/main.js"></script>
+<!-- endbuild -->
+</body>
+</html>
