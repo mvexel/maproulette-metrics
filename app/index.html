@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="../bower_components/bootstrap-datepicker/css/datepicker.css" />
   <link rel="stylesheet" href="../bower_components/bootstrap-datepicker/css/datepicker3.css" />
   <link rel="stylesheet" href="../bower_components/bootstrap-select/bootstrap-select.css" />
+  <link rel="stylesheet" href="../bower_components/font-awesome/css/font-awesome.css" />
   <!-- endbower -->
   <!-- endbuild -->
   <!-- build:css(.tmp) styles/main.css -->
@@ -29,11 +30,10 @@
         <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
 
-
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
         <div class="container">
             <div class="navbar-header">
-                <a class="navbar-brand" href="#">MapRoulette Metrics</a>
+                <a class="navbar-brand" href="#"><i id="wait" class="fa fa-refresh fa-spin"></i> MapRoulette Metrics</a>
             </div>
             <ul class="nav navbar-nav navbar-right">
             </ul>
@@ -52,7 +52,9 @@
             <div class="tab-pane fade in active" id="overall">
                 <div class="container">
                     <h1>Overall statistics</h1>
-                    <svg id="chart-overall-history" style='height:500px; width:100%' /></svg>
+                    <div id="chart-overall-history">
+                        <svg style='height:500px; width:100%' /></svg>
+                    </div>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="challenge">
@@ -61,7 +63,9 @@
                     <select class="selectpicker" id="challenge-select" data-live-search="true">
                         <option>Please wait...</option>
                     </select>
-                    <svg id="chart-challenge-history" style='height:500px; width:100%'></svg>
+                    <div id="chart-challenge-history">
+                        <svg style='height:500px; width:100%'></svg>
+                    </div>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="user">
@@ -70,7 +74,9 @@
                     <select class="selectpicker" id="user-select" data-live-search="true">
                         <option>Please wait...</option>
                     </select>
-                    <svg id="chart-user-history" style='height:500px; width:100%'></svg>
+                    <div id="chart-user-history">
+                        <svg style='height:500px; width:100%'></svg>
+                    </div>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="settings">
@@ -99,8 +105,6 @@
             </div>
         </div>
     </div>
-
-
 
 <!-- build:js scripts/vendor.js -->
 <!-- bower:js -->

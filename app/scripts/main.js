@@ -1,7 +1,8 @@
-/*global d3:false, nv:false, moment:false*/
+/*global d3:false, nv:false*/
 var uriBase = 'http://dev.maproulette.org/api/';
 var challenges = [];
 var users = [];
+var overall = {};
 
 function transform(data) {
     'use strict';
@@ -15,40 +16,115 @@ function transform(data) {
     return transformedData;
 }
 
-function drawHistory(type, start, end, selector) {
+function getData(for_type, identifier) {
     'use strict';
-    console.log(selector);
-    d3.json(uriBase + 'stats/history', function( error, data ) {
-        nv.addGraph(function() {
-            var chart = nv.models.multiBarChart()
-                .transitionDuration(350)
-                .reduceXTicks(true)   //If 'false', every single x-axis tick label will be rendered.
-                .rotateLabels(0)      //Angle to rotate x-axis labels.
-                .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
-                .groupSpacing(0.1)   //Distance between each group of bars.
-                .stacked(true)
-            ;
 
-            chart.xAxis
-                .tickFormat(function(d) { return d3.time.format('%b %d')(new Date(d)); });
+    var uri = uriBase;
+    if (for_type ==='user' || for_type === 'challenge') {
+        uri += 'stats/' + for_type + '/' + identifier;
+    } else {
+        uri += 'stats';
+    }
 
-            chart.yAxis
-                .tickFormat(d3.format(',f'));
+    // get and store summary
+    $.ajax({
+        url: uri,
+        dataType: 'json',
+        async: false,
+        success: function( data ) {
+            if (for_type === 'challenge') {
+                $.each(challenges, function(index, challenge) {
+                    if (challenge.slug === identifier) {
+                        var dataobj = {};
+                        dataobj.summary = data;
+                        challenge.data = dataobj;
+                    }
+                });
+            } else if (for_type ==='user') {
+                $.each(users, function(index, user) {
+                    if (user.id === identifier) {
+                        var dataobj = {};
+                        dataobj.summary = data;
+                        user.data = dataobj;
+                    }
+                });
+            } else {
+                overall.summary = data;
+            }
+        }
+    });
 
-            d3.select(selector)
-                .datum(transform(data))
-                .call(chart);
+    // now get and store history
+    uri += '/history';
+    $.ajax({
+        url: uri,
+        dataType: 'json',
+        async: false,
+        success: function( data ) {
+            if (for_type === 'challenge') {
+                $.each(challenges, function(index, challenge) {
+                    if (challenge.slug === identifier) {
+                        var dataobj = {};
+                        dataobj.historical = data;
+                        challenge.data = dataobj;
+                    }
+                });
+            } else if (for_type === 'user') {
+                $.each(users, function(index, user) {
+                    if (user.id === identifier) {
+                        var dataobj = {};
+                        dataobj.historical = data;
+                        user.data = dataobj;
+                    }
+                });
+            } else {
+                overall.historical = data;
+            }
+        }
+    });
+}
 
-            nv.utils.windowResize(chart.update);
+function drawHistory(data, selector) {
+    'use strict';
+    nv.addGraph(function() {
+        var chart = nv.models.multiBarChart()
+            .transitionDuration(350)
+            .reduceXTicks(true)   //If 'false', every single x-axis tick label will be rendered.
+            .rotateLabels(0)      //Angle to rotate x-axis labels.
+            .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
+            .groupSpacing(0.1)   //Distance between each group of bars.
+            .stacked(true)
+        ;
 
-            return chart;
-        });
+        chart.xAxis
+            .tickFormat(function(d) { return d3.time.format('%b %d')(new Date(d)); });
+
+        chart.yAxis
+            .tickFormat(d3.format(',f'));
+
+        d3.select('#' + selector + ' svg')
+            .datum(transform(data))
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
     });
 }
 
 $(document).ready( function () {
-    // configure the date picker in settings
+
     'use strict';
+
+    // hook up loading div
+    var $loading = $('#wait').hide();
+    $(document).ajaxStart(function () {
+        $loading.show();
+    }).ajaxStop(function () {
+        $loading.fadeOut();
+    });
+
+    // configure the date picker in settings
     $('#datepicker-container .input-daterange').datepicker({
         autoclose: true,
         todayHighlight: true,
@@ -60,47 +136,76 @@ $(document).ready( function () {
     // get the list of challenges
     $.getJSON(uriBase + 'challenges', function( data ) {
         $.each( data, function( index, challenge ) {
-            challenges.push({'slug': challenge.slug, 'title': challenge.title});
+            challenge.data = null;
+            challenges.push(challenge);
         });
     // and populate the dropdown
     }).then( function() {
         $('#challenge-select').empty();
         $.each( challenges, function( index, challenge ) {
-            console.log(challenge.title);
             $('#challenge-select').append('<option value="' + challenge.slug + '">' + challenge.title + '</option>');
         });
-        $('#challenge-select').prepend('<option value="0" selected><em>Select a challenge</em></option>');
+        $('#challenge-select').prepend('<option value="0" selected disabled>Select a challenge</option>');
         $('#challenge-select').selectpicker();
     });
 
     // get the list of users
     $.getJSON(uriBase + 'users', function( data ) {
         $.each( data, function( index, user ) {
-            users.push({'id': user.id, 'display_name': user.display_name});
+            user.data = null;
+            users.push(user);
         });
     // and populate the dropdown
     }).then( function() {
         $('#user-select').empty();
         $.each( users, function( index, user ) {
-            console.log(user.display_name);
             $('#user-select').append('<option value="' + user.id + '">' + user.display_name + '</option>');
         });
+        $('#user-select').prepend('<option value="0" selected disabled>Select a user</option>');
         $('#user-select').selectpicker();
     });
 
-    // attach handlers
+    // attach handler for challenge select box
     $('#challenge-select').change( function() {
         $(this).find('option[value="0"]').remove();
         var slug = $(this).find('option:selected').attr('value');
-        console.log( 'challenge ' + slug + ' selected');
+        $.each( challenges, function( index, challenge ) {
+            if(challenge.slug === slug) {
+                if (challenge.data === null) {
+                    console.log('loading data for ' + slug);
+                    getData('challenge', slug);
+                } else {
+                    console.log('data for ' + slug + ' already loaded, repainting');
+                    console.log(challenge.data);
+                }
+            }
+        });
     });
-    $('#user-select').change( function() {
-        var uid = $(this).find('option:selected').attr('value');
-        console.log( 'user ' + uid + ' selected');
-    });
-    console.log('ready!');
 
+    // attach handler for user select box
+    $('#user-select').change( function() {
+        $(this).find('option[value="0"]').remove();
+        var uid = $(this).find('option:selected').attr('value');
+        $.each( users, function( index, user ) {
+            if(user.id === parseInt(uid)) {
+                if (user.data === null) {
+                    console.log('loading data for ' + uid);
+                    getData('user', uid);
+                } else {
+                    console.log('data for ' + uid + ' already loaded, repainting');
+                    console.log(user.data);
+                }
+            }
+        });
+    });
+
+    // draw the overall history chart
+    $.when(getData('overall', null)).then(function () {
+        console.log(overall);
+        drawHistory(overall.historical, 'chart-overall-history');
+    });
 });
 
-drawHistory('overall', moment().subtract('years', 100), moment(), '#chart-overall-history');
+
+
 
