@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.css" />
   <link rel="stylesheet" href="../bower_components/bootstrap-datepicker/css/datepicker.css" />
   <link rel="stylesheet" href="../bower_components/bootstrap-datepicker/css/datepicker3.css" />
+  <link rel="stylesheet" href="../bower_components/bootstrap-select/bootstrap-select.css" />
   <!-- endbower -->
   <!-- endbuild -->
   <!-- build:css(.tmp) styles/main.css -->
@@ -51,22 +52,25 @@
             <div class="tab-pane fade in active" id="overall">
                 <div class="container">
                     <h1>Overall statistics</h1>
-                    <svg style='height:500px; width:100%' />
+                    <svg id="chart-overall-history" style='height:500px; width:100%' /></svg>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="challenge">
                 <div class="container">
                     <h1>Challenge statistics</h1>
-                        <select data-placeholder="Select a challenge" class="chosen-select" id="challenge-select">
-                        </select>
-                    </div>
-                    <svg style='height:500px; width:100%' />
+                    <select class="selectpicker" id="challenge-select" data-live-search="true">
+                        <option>Please wait...</option>
+                    </select>
+                    <svg id="chart-challenge-history" style='height:500px; width:100%'></svg>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="user">
                 <div class="container">
                     <h1>User statistics</h1>
-                    <svg style='height:500px; width:100%' />
+                    <select class="selectpicker" id="user-select" data-live-search="true">
+                        <option>Please wait...</option>
+                    </select>
+                    <svg id="chart-user-history" style='height:500px; width:100%'></svg>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="settings">
@@ -101,12 +105,26 @@
 <!-- build:js scripts/vendor.js -->
 <!-- bower:js -->
 <script src="../bower_components/jquery/dist/jquery.js"></script>
-<script src="../bower-components/chosen/chosen.jquery.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/affix.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/alert.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/button.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/carousel.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/collapse.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/dropdown.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/tab.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/transition.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/scrollspy.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/modal.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/tooltip.js"></script>
+<script src="../bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/popover.js"></script>
 <script src="../bower_components/d3/d3.js"></script>
 <script src="../bower_components/nvd3/nv.d3.js"></script>
 <script src="../bower_components/bootstrap/dist/js/bootstrap.js"></script>
 <script src="../bower_components/bootstrap/js/dropdown.js"></script>
 <script src="../bower_components/bootstrap-datepicker/js/bootstrap-datepicker.js"></script>
+<script src="../bower_components/moment/moment.js"></script>
+<script src="../bower_components/momentjs/moment.js"></script>
+<script src="../bower_components/bootstrap-select/bootstrap-select.js"></script>
 <!-- endbower -->
 <!-- endbuild -->
 
