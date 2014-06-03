@@ -3,6 +3,8 @@ var uriBase = 'http://dev.maproulette.org/api/';
 var challenges = [];
 var users = [];
 var overall = {};
+var exclude_statuses = ['created', 'deleted', 'editing', 'available', 'assigned'];
+
 
 function transform(data) {
     'use strict';
@@ -14,6 +16,20 @@ function transform(data) {
         return {'key': d.key, 'values': series};
     });
     return transformedData;
+}
+
+function asPieData(data){
+    'use strict';
+    var result = [];
+    $.each(data, function( k, v ) {
+        if (exclude_statuses.indexOf(k) === -1) {
+            var row = {};
+            row.label = k;
+            row.value = v;
+            result.push(row);
+        }
+    });
+    return result;
 }
 
 function getData(for_type, identifier) {
@@ -55,26 +71,26 @@ function getData(for_type, identifier) {
     });
 
     // now get and store history
-    uri += '/history';
+    var histUri = uri + '/history';
     $.ajax({
-        url: uri,
+        url: histUri,
         dataType: 'json',
         async: false,
         success: function( data ) {
             if (for_type === 'challenge') {
                 $.each(challenges, function(index, challenge) {
                     if (challenge.slug === identifier) {
-                        var dataobj = {};
-                        dataobj.historical = data;
-                        challenge.data = dataobj;
+                        // var dataobj = {};
+                        // dataobj.historical = data;
+                        challenge.data.historical = data;
                     }
                 });
             } else if (for_type === 'user') {
                 $.each(users, function(index, user) {
-                    if (user.id === identifier) {
-                        var dataobj = {};
-                        dataobj.historical = data;
-                        user.data = dataobj;
+                    if (user.id === parseInt(identifier)) {
+                        // var dataobj = {};
+                        // dataobj.historical = data;
+                        user.data.historical = data;
                     }
                 });
             } else {
@@ -82,10 +98,66 @@ function getData(for_type, identifier) {
             }
         }
     });
+
+    // get breakdown
+    if ( for_type === 'challenge' || for_type === 'user' ) {
+        var breakdown = ( for_type === 'challenge' ? 'users' : 'challenges' );
+        var breakdownUri = uri + '/' + breakdown;
+        $.ajax({
+            url: breakdownUri,
+            dataType: 'json',
+            async: false,
+            success: function( data ) {
+                if (for_type === 'challenge') {
+                    $.each(challenges, function(index, challenge) {
+                        if (challenge.slug === identifier) {
+                            // var dataobj = {};
+                            // dataobj.historical = data;
+                            challenge.data.breakdown = data;
+                            console.log(challenge.data);
+                        }
+                    });
+                } else if (for_type === 'user') {
+                    $.each(users, function(index, user) {
+                        if (user.id === parseInt(identifier)) {
+                            // var dataobj = {};
+                            // dataobj.historical = data;
+                            user.data.breakdown = data;
+                            console.log(user.data);
+                        }
+                    });
+                } else {
+                    overall.historical = data;
+                }
+            }
+        });
+    }
+}
+
+function drawPie(data, selector) {
+    'use strict';
+    console.log(data);
+    d3.selectAll('#' + selector + ' svg > *').remove();
+    nv.addGraph(function() {
+        var chart = nv.models.pieChart()
+            .x(function(d) { return d.label; })
+            .y(function(d) { return d.value; })
+            .labelType('percent')
+            .showLabels(true);
+
+        d3.select('#' + selector + ' svg')
+            .datum(asPieData(data))
+            .transition()
+            .duration(350)
+            .call(chart);
+
+        return chart;
+    });
 }
 
 function drawHistory(data, selector) {
     'use strict';
+    d3.selectAll('#' + selector + ' svg > *').remove();
     nv.addGraph(function() {
         var chart = nv.models.multiBarChart()
             .transitionDuration(350)
@@ -109,6 +181,20 @@ function drawHistory(data, selector) {
         nv.utils.windowResize(chart.update);
 
         return chart;
+    });
+}
+
+function drawBreakdown(data, selector) {
+    'use strict';
+    console.log(data);
+    $.each(data, function( index, breakdown ) {
+        console.log(breakdown);
+        if (breakdown.key !== null) {
+            var elemId = breakdown.key.replace(/\s/g, '');
+            $('#' + selector).append('<div id=' + elemId + '><h3>' + breakdown.key + '</h3><svg style="height:400px;width:400px"></div>');
+            drawPie(breakdown.values, elemId);
+            console.log(elemId);
+        }
     });
 }
 
@@ -146,7 +232,7 @@ $(document).ready( function () {
             $('#challenge-select').append('<option value="' + challenge.slug + '">' + challenge.title + '</option>');
         });
         $('#challenge-select').prepend('<option value="0" selected disabled>Select a challenge</option>');
-        $('#challenge-select').selectpicker();
+        //$('#challenge-select').selectpicker();
     });
 
     // get the list of users
@@ -162,21 +248,26 @@ $(document).ready( function () {
             $('#user-select').append('<option value="' + user.id + '">' + user.display_name + '</option>');
         });
         $('#user-select').prepend('<option value="0" selected disabled>Select a user</option>');
-        $('#user-select').selectpicker();
+        //$('#user-select').selectpicker();
     });
 
     // attach handler for challenge select box
+
     $('#challenge-select').change( function() {
-        $(this).find('option[value="0"]').remove();
         var slug = $(this).find('option:selected').attr('value');
         $.each( challenges, function( index, challenge ) {
             if(challenge.slug === slug) {
                 if (challenge.data === null) {
-                    console.log('loading data for ' + slug);
-                    getData('challenge', slug);
+                    $.when(getData('challenge', slug)).then(function () {
+                        drawPie(challenge.data.summary, 'chart-challenge-summary');
+                        drawHistory(challenge.data.historical, 'chart-challenge-history');
+                        drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
+                    });
                 } else {
-                    console.log('data for ' + slug + ' already loaded, repainting');
                     console.log(challenge.data);
+                    drawPie(challenge.data.summary, 'chart-challenge-summary');
+                    drawHistory(challenge.data.historical, 'chart-challenge-history');
+                    drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
                 }
             }
         });
@@ -185,15 +276,20 @@ $(document).ready( function () {
     // attach handler for user select box
     $('#user-select').change( function() {
         $(this).find('option[value="0"]').remove();
-        var uid = $(this).find('option:selected').attr('value');
+        var uid = parseInt($(this).find('option:selected').attr('value'));
+        console.log(uid + ' selected');
         $.each( users, function( index, user ) {
-            if(user.id === parseInt(uid)) {
+            if(user.id === uid) {
                 if (user.data === null) {
-                    console.log('loading data for ' + uid);
-                    getData('user', uid);
+                    $.when(getData('user', uid)).then(function () {
+                        drawPie(user.data.summary, 'chart-user-summary');
+                        drawHistory(user.data.historical, 'chart-user-history');
+                        drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
+                    });
                 } else {
-                    console.log('data for ' + uid + ' already loaded, repainting');
-                    console.log(user.data);
+                    drawPie(user.data.summary, 'chart-user-summary');
+                    drawHistory(user.data.historical, 'chart-user-history');
+                    drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
                 }
             }
         });
@@ -201,7 +297,6 @@ $(document).ready( function () {
 
     // draw the overall history chart
     $.when(getData('overall', null)).then(function () {
-        console.log(overall);
         drawHistory(overall.historical, 'chart-overall-history');
     });
 });

@@ -60,22 +60,38 @@
             <div class="tab-pane fade" id="challenge">
                 <div class="container">
                     <h1>Challenge statistics</h1>
-                    <select class="selectpicker" id="challenge-select" data-live-search="true">
+                    <select class="form-control" id="challenge-select" data-live-search="true">
                         <option>Please wait...</option>
                     </select>
+                    <h2>Summary</h2>
+                    <div id="chart-challenge-summary">
+                        <svg style='height:400px; width:400px'></svg>
+                    </div>
+                    <h2>History</h2>
                     <div id="chart-challenge-history">
                         <svg style='height:500px; width:100%'></svg>
+                    </div>
+                    <h2>Breakdown by Users</h2>
+                    <div id="chart-challenge-breakdown">
                     </div>
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="user">
                 <div class="container">
                     <h1>User statistics</h1>
-                    <select class="selectpicker" id="user-select" data-live-search="true">
+                    <select class="form-control" id="user-select" data-live-search="true">
                         <option>Please wait...</option>
                     </select>
+                    <h2>Summary</h2>
+                    <div id="chart-user-summary">
+                        <svg style='height:400px; width:400px'></svg>
+                    </div>
+                    <h2>History</h2>
                     <div id="chart-user-history">
                         <svg style='height:500px; width:100%'></svg>
+                    </div>
+                    <h2>Breakdown by Challenges</h2>
+                    <div id="chart-user-breakdown">
                     </div>
                 </div><!-- /.container -->
             </div>
