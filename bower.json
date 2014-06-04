@@ -13,5 +13,7 @@
     "bootstrap-select": "~1.5.2",
     "font-awesome": "~4.1.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "font-awesome": "~4.1.0"
+  }
 }

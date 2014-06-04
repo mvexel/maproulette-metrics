@@ -191,7 +191,7 @@ function drawBreakdown(data, selector) {
         console.log(breakdown);
         if (breakdown.key !== null) {
             var elemId = breakdown.key.replace(/\s/g, '');
-            $('#' + selector).append('<div id=' + elemId + '><h3>' + breakdown.key + '</h3><svg style="height:400px;width:400px"></div>');
+            $('#' + selector).append('<div id=' + elemId + '><h3>' + breakdown.key + '</h3><svg style="height:200px;width:200px"></div>');
             drawPie(breakdown.values, elemId);
             console.log(elemId);
         }
