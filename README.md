@@ -20,7 +20,21 @@ Create `s3.json` in the root dir:
     {
     	"key": "AWS_KEY",
     	"secret": "AWS_SECRET_KEY"
+		"buckets":
+		{
+			"stage": "maproulette-metrics-stage",
+			"prod": "maproulette-metrics-production"
+		}
     }
 
 ...supplying your own keys.
 
+Then,
+
+    grunt deploy
+
+to deploy on stage, or
+
+    grunt deploy --target=prod
+
+to deploy on production.
