@@ -15,10 +15,11 @@ module.exports = function (grunt) {
     // Time how long tasks take. Can help when optimizing build times
     require('time-grunt')(grunt);
 
-    // Configurable paths
+    // Configurable paths and S3 options
     var config = {
         app: 'app',
-        dist: 'dist'
+        dist: 'dist',
+        s3: grunt.file.readJSON('./s3.json'),
     };
 
     // Define the configuration for all the tasks
@@ -26,6 +27,7 @@ module.exports = function (grunt) {
 
         // Project settings
         config: config,
+
 
         // Watches files for changes and runs tasks based on the changed files
         watch: {
@@ -326,6 +328,13 @@ module.exports = function (grunt) {
                     cwd: '.',
                     src: ['bower_components/bootstrap-sass-official/vendor/assets/fonts/bootstrap/*.*'],
                     dest: '<%= config.dist %>'
+                },
+                {
+                    expand: true,
+                    dot: true,
+                    cwd: '.',
+                    src: ['bower_components/font-awesome/fonts/*.*'],
+                    dest: '<%= config.dist %>'
                 }]
             },
             styles: {
@@ -369,6 +378,46 @@ module.exports = function (grunt) {
                 'imagemin',
                 'svgmin'
             ]
+        },
+
+        // deploy on s3
+        s3: {
+            options: {
+                key: '<%= config.s3.key %>',
+                secret: '<%= config.s3.secret %>',
+                access: 'public-read',
+                headers: {
+                    // Two Year cache policy (1000 * 60 * 60 * 24 * 730)
+                    'Cache-Control': 'max-age=630720000, public',
+                    'Expires': new Date(Date.now() + 63072000000).toUTCString()
+                }
+            },
+            stage: {
+                options: {
+                    encodePaths: false,
+                    maxOperations: 20,
+                    bucket: '<%= config.s3.buckets.stage %>',
+                },
+                upload: [{
+                    src: 'dist/**',
+                    dest: '',
+                    rel: 'dist',
+                    options: { gzip: true },
+                }]
+            },
+            prod: {
+                options: {
+                    encodePaths: false,
+                    maxOperations: 20,
+                    bucket: '<%= config.s3.buckets.prod %>',
+                },
+                upload: [{
+                    src: 'dist/**',
+                    dest: '',
+                    rel: 'dist',
+                    options: { gzip: true }
+                }]
+            }
         }
     });
 
@@ -419,7 +468,14 @@ module.exports = function (grunt) {
         'modernizr',
         'rev',
         'usemin',
-        'htmlmin'
+        'htmlmin',
+    ]);
+
+    var target = grunt.option('target') || 'stage';
+
+    grunt.registerTask('deploy', [
+        'default',
+        's3:' + target
     ]);
 
     grunt.registerTask('default', [
