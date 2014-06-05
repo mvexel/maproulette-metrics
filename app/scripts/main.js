@@ -211,7 +211,7 @@ $(document).ready( function () {
     });
 
     // configure the date picker in settings
-    $('#datepicker-container .input-daterange').datepicker({
+    $('#datepicker').datepicker({
         autoclose: true,
         todayHighlight: true,
         todayBtn: true,

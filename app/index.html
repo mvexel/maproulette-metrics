@@ -96,10 +96,13 @@
                 </div><!-- /.container -->
             </div>
             <div class="tab-pane fade" id="settings">
-                <div class="container">
+                <div class="container-fluid">
                     <h1>Settings</h1>
-                    <div class="row">
-                        <div class="container" id="datepicker-container">
+                    <div class="row settings-row">
+                        <div class="col-lg-2 settings-col">
+                            Select from and to
+                        </div>
+                        <div class="col-lg-3 settings-col">
                             <div class="input-daterange input-group" id="datepicker">
                                 <input type="text" class="input-sm form-control" name="start" />
                                 <span class="input-group-addon">to</span>
@@ -107,14 +110,34 @@
                             </div>
                         </div>
                     </div>
-                    <div class="container">
-                        <div class="btn-group" data-toggle="buttons">
-                            <label class="btn btn-default">
-                                <input type="radio" name="renderas" id="table"> Table
-                            </label>
-                            <label class="btn btn-default">
-                                <input type="radio" name="renderas" id="chart"> Chart
-                            </label>
+                    <div class="row settings-row">
+                        <div class="col-lg-2 settings-col">
+                            Render the data as 
+                        </div>
+                        <div class="col-lg-3 settings-col">
+                            <div class="btn-group" data-toggle="buttons">
+                                <label class="btn btn-default">
+                                    <input type="radio" name="renderas" id="table"> Table
+                                </label>
+                                <label class="btn btn-default active">
+                                    <input type="radio" name="renderas" id="chart"> Chart
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row settings-row">
+                        <div class="col-lg-2 settings-col">
+                            Show pie chart labels as
+                        </div>
+                        <div class="col-lg-3 settings-col">
+                            <div class="btn-group" data-toggle="buttons">
+                                <label class="btn btn-default active">
+                                    <input type="radio" name="pielabels" id="percent"> Percent
+                                </label>
+                                <label class="btn btn-default">
+                                    <input type="radio" name="pielabels" id="value"> Absolute Values
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
