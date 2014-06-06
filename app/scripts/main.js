@@ -1,17 +1,25 @@
 /*global d3:false, nv:false*/
+'use strict';
 var uriBase = 'http://dev.maproulette.org/api/';
 var challenges = [];
 var users = [];
 var overall = {};
 var exclude_statuses = ['created', 'deleted', 'editing', 'available', 'assigned'];
+var start_date = new Date('2014-01-01');
+var end_date = new Date();
+var drawnPieCharts = [];
+var drawnHistoryCharts = [];
+var pieLabelFormat = 'percent';
 
-
-function transform(data) {
-    'use strict';
+function asHistoricalData(data) {
     var transformedData = data.map( function(d) {
+        console.log('getting data for ' + start_date + ' to ' + end_date);
         var series = [];
         for (var key in d.values) {
-            series.push({'x': key, 'y': d.values[key]});
+            var date = new Date(key);
+            if (!(date < start_date || date > end_date)) {
+                series.push({'x': key, 'y': d.values[key]});
+            }
         }
         return {'key': d.key, 'values': series};
     });
@@ -19,7 +27,6 @@ function transform(data) {
 }
 
 function asPieData(data){
-    'use strict';
     var result = [];
     $.each(data, function( k, v ) {
         if (exclude_statuses.indexOf(k) === -1) {
@@ -33,8 +40,6 @@ function asPieData(data){
 }
 
 function getData(for_type, identifier) {
-    'use strict';
-
     var uri = uriBase;
     if (for_type ==='user' || for_type === 'challenge') {
         uri += 'stats/' + for_type + '/' + identifier;
@@ -114,7 +119,6 @@ function getData(for_type, identifier) {
                             // var dataobj = {};
                             // dataobj.historical = data;
                             challenge.data.breakdown = data;
-                            console.log(challenge.data);
                         }
                     });
                 } else if (for_type === 'user') {
@@ -123,7 +127,6 @@ function getData(for_type, identifier) {
                             // var dataobj = {};
                             // dataobj.historical = data;
                             user.data.breakdown = data;
-                            console.log(user.data);
                         }
                     });
                 } else {
@@ -135,15 +138,16 @@ function getData(for_type, identifier) {
 }
 
 function drawPie(data, selector) {
-    'use strict';
     console.log(data);
+    var hasLegend = !selector.startsWith('user');
     d3.selectAll('#' + selector + ' svg > *').remove();
     nv.addGraph(function() {
         var chart = nv.models.pieChart()
             .x(function(d) { return d.label; })
             .y(function(d) { return d.value; })
-            .labelType('percent')
-            .showLabels(true);
+            .labelType(pieLabelFormat)
+            .showLabels(true)
+            .showLegend(hasLegend);
 
         d3.select('#' + selector + ' svg')
             .datum(asPieData(data))
@@ -151,12 +155,13 @@ function drawPie(data, selector) {
             .duration(350)
             .call(chart);
 
+        drawnPieCharts.push([data, selector]);
         return chart;
     });
 }
 
 function drawHistory(data, selector) {
-    'use strict';
+    console.log('will draw history chart at ' + selector);
     d3.selectAll('#' + selector + ' svg > *').remove();
     nv.addGraph(function() {
         var chart = nv.models.multiBarChart()
@@ -175,33 +180,46 @@ function drawHistory(data, selector) {
             .tickFormat(d3.format(',f'));
 
         d3.select('#' + selector + ' svg')
-            .datum(transform(data))
+            .datum(asHistoricalData(data))
             .call(chart);
 
         nv.utils.windowResize(chart.update);
 
+        drawnHistoryCharts.push([data, selector]);
         return chart;
     });
 }
 
 function drawBreakdown(data, selector) {
-    'use strict';
-    console.log(data);
     $.each(data, function( index, breakdown ) {
-        console.log(breakdown);
         if (breakdown.key !== null) {
             var elemId = breakdown.key.replace(/\s/g, '');
-            $('#' + selector).append('<div id=' + elemId + '><h3>' + breakdown.key + '</h3><svg style="height:200px;width:200px"></div>');
-            drawPie(breakdown.values, elemId);
+            $('#' + selector).append('<div class="breakdown" id="' + elemId + '""><h3>' + breakdown.key + '</h3><svg style="height:200px;width:200px"></div>');
+            drawPie(breakdown.values, 'breakdown-' + elemId);
             console.log(elemId);
         }
     });
 }
 
+function redrawAllCharts() {
+    var pieChartsToRedraw = drawnPieCharts;
+    var historyChartsToRedraw = drawnHistoryCharts;
+    var chartToUpdate;
+    drawnPieCharts = [];
+    drawnHistoryCharts = [];
+    while (pieChartsToRedraw.length > 0) {
+        chartToUpdate = pieChartsToRedraw.pop();
+        console.log('redrawing ' + chartToUpdate[0]);
+        drawPie(chartToUpdate[0], chartToUpdate[1]);
+    }
+    while (historyChartsToRedraw.length > 0) {
+        chartToUpdate = historyChartsToRedraw.pop();
+        console.log('redrawing ' + chartToUpdate[0]);
+        drawHistory(chartToUpdate[0], chartToUpdate[1]);
+    }
+}
+
 $(document).ready( function () {
-
-    'use strict';
-
     // hook up loading div
     var $loading = $('#wait').hide();
     $(document).ajaxStart(function () {
@@ -210,14 +228,26 @@ $(document).ready( function () {
         $loading.fadeOut();
     });
 
-    // configure the date picker in settings
-    $('#datepicker').datepicker({
+    // configure the date picker in settings and hook up events
+    $('.datepicker').datepicker({
         autoclose: true,
         todayHighlight: true,
         todayBtn: true,
-        endDate: '-0d',
-        startDate: '-1y'
+        endDate: '-0d'
+    }).on('changeDate', function(e){
+        if ($(e.target).attr('id') === 'date-start') {
+            start_date = e.date;
+            console.log('start date set to ' + start_date);
+            redrawAllCharts();
+        }
+        if ($(e.target).attr('id') === 'date-end') {
+            end_date = e.date;
+            console.log('end date set to ' + end_date);
+            redrawAllCharts();
+        }
     });
+    $('#date-start').datepicker('setDate', start_date);
+    $('#date-end').datepicker('setDate', end_date);
 
     // get the list of challenges
     $.getJSON(uriBase + 'challenges', function( data ) {
@@ -264,7 +294,6 @@ $(document).ready( function () {
                         drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
                     });
                 } else {
-                    console.log(challenge.data);
                     drawPie(challenge.data.summary, 'chart-challenge-summary');
                     drawHistory(challenge.data.historical, 'chart-challenge-history');
                     drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
@@ -299,6 +328,14 @@ $(document).ready( function () {
     $.when(getData('overall', null)).then(function () {
         drawHistory(overall.historical, 'chart-overall-history');
     });
+
+    // add redraw event when tab is clicked to force NVD3 to redraw the charts at the right size.
+    $("ul.nav-tabs > li > a").on("shown.bs.tab", function (e) {
+        console.log($(e.target).attr("href").substr(1));
+        $(window).trigger('resize');
+    });
+
+
 });
 
 
