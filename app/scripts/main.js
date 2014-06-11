@@ -5,6 +5,18 @@ var challenges = [];
 var users = [];
 var overall = {};
 var exclude_statuses = ['created', 'deleted', 'editing', 'available', 'assigned'];
+var colors = {
+    'fixed': 'green',
+    'skipped': 'yellow',
+    'falsepositive': 'red',
+    'alreadyfixed': 'lightgreen',
+    'created': 'lightcyan',
+    'available': 'lightcyan',
+    'deleted': 'lightslategrey',
+    'editing': 'wheat',
+    'assigned': 'papayawhip'
+};
+
 var start_date = new Date('2014-01-01');
 var end_date = new Date();
 var drawnPieCharts = [];
@@ -33,6 +45,7 @@ function asPieData(data){
             var row = {};
             row.label = k;
             row.value = v;
+            row.color = colors[k];
             result.push(row);
         }
     });
@@ -138,9 +151,12 @@ function getData(for_type, identifier) {
 }
 
 function drawPie(data, selector) {
-    console.log(data);
-    var hasLegend = !selector.startsWith('user');
+    console.log('will draw pie chart at ' + selector);
+    // legends are for closers
+    var hasLegend = !selector.startsWith('breakdown');
+    // remove all existing content from the element
     d3.selectAll('#' + selector + ' svg > *').remove();
+    // add the pie chart
     nv.addGraph(function() {
         var chart = nv.models.pieChart()
             .x(function(d) { return d.label; })
@@ -156,13 +172,16 @@ function drawPie(data, selector) {
             .call(chart);
 
         drawnPieCharts.push([data, selector]);
+        console.log('we now have ' + drawnPieCharts.length + ' pie charts drawn');
         return chart;
     });
 }
 
 function drawHistory(data, selector) {
     console.log('will draw history chart at ' + selector);
+    // remove all existing content from the element
     d3.selectAll('#' + selector + ' svg > *').remove();
+    // add the compund bar chart
     nv.addGraph(function() {
         var chart = nv.models.multiBarChart()
             .transitionDuration(350)
@@ -186,16 +205,19 @@ function drawHistory(data, selector) {
         nv.utils.windowResize(chart.update);
 
         drawnHistoryCharts.push([data, selector]);
+        console.log('we now have ' + drawnHistoryCharts.length + ' history charts drawn');
+
         return chart;
     });
 }
 
 function drawBreakdown(data, selector) {
+    $('#' + selector).empty();
     $.each(data, function( index, breakdown ) {
         if (breakdown.key !== null) {
-            var elemId = breakdown.key.replace(/\s/g, '');
-            $('#' + selector).append('<div class="breakdown" id="' + elemId + '""><h3>' + breakdown.key + '</h3><svg style="height:200px;width:200px"></div>');
-            drawPie(breakdown.values, 'breakdown-' + elemId);
+            var elemId = 'breakdown-' + breakdown.key.replace(/\s/g, '');
+            $('#' + selector).append('<div class="breakdown"><h3>' + breakdown.key + '</h3><div id="' + elemId + '"><svg style="height:200px;width:200px"></div></div>');
+            drawPie(breakdown.values, elemId);
             console.log(elemId);
         }
     });
@@ -209,12 +231,10 @@ function redrawAllCharts() {
     drawnHistoryCharts = [];
     while (pieChartsToRedraw.length > 0) {
         chartToUpdate = pieChartsToRedraw.pop();
-        console.log('redrawing ' + chartToUpdate[0]);
         drawPie(chartToUpdate[0], chartToUpdate[1]);
     }
     while (historyChartsToRedraw.length > 0) {
         chartToUpdate = historyChartsToRedraw.pop();
-        console.log('redrawing ' + chartToUpdate[0]);
         drawHistory(chartToUpdate[0], chartToUpdate[1]);
     }
 }
@@ -330,8 +350,8 @@ $(document).ready( function () {
     });
 
     // add redraw event when tab is clicked to force NVD3 to redraw the charts at the right size.
-    $("ul.nav-tabs > li > a").on("shown.bs.tab", function (e) {
-        console.log($(e.target).attr("href").substr(1));
+    $('ul.nav-tabs > li > a').on('shown.bs.tab', function (e) {
+        console.log($(e.target).attr('href').substr(1));
         $(window).trigger('resize');
     });
 
