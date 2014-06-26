@@ -22,9 +22,14 @@ var end_date = new Date();
 var drawnPieCharts = [];
 var drawnHistoryCharts = [];
 var pieLabelFormat = 'percent';
+var showMachineStatuses = false;
 
 function asHistoricalData(data) {
     var transformedData = data.map( function(d) {
+        if (exclude_statuses.indexOf(d.key) > -1 && !showMachineStatuses) {
+            console.log('skipping ' + d.key);
+            return;
+        }
         console.log('getting data for ' + start_date + ' to ' + end_date);
         var series = [];
         for (var key in d.values) {
@@ -35,6 +40,14 @@ function asHistoricalData(data) {
         }
         return {'key': d.key, 'values': series};
     });
+    // remove empty items where we skipped keys
+    for (var i = 0; i < transformedData.length; i++) {
+        if (transformedData[i] === undefined) {
+            transformedData.splice(i, 1);
+            i--;
+        }
+    }
+    // return the result
     return transformedData;
 }
 
@@ -211,13 +224,20 @@ function drawHistory(data, selector) {
     });
 }
 
-function drawBreakdown(data, selector) {
+function drawBreakdown(data, selector, opts) {
+    console.log('will draw breakdown for ' + selector);
     $('#' + selector).empty();
     $.each(data, function( index, breakdown ) {
         if (breakdown.key !== null) {
+            var isChallenge = opts && opts.uid;
             var elemId = 'breakdown-' + breakdown.key.replace(/\s/g, '');
             $('#' + selector).append('<div class="breakdown"><h3>' + breakdown.key + '</h3><div id="' + elemId + '"><svg style="height:200px;width:200px"></div></div>');
             drawPie(breakdown.values, elemId);
+            if (isChallenge) {
+                // also draw the history for this user
+                // FIXME implement
+                console.log('here we would draw the history for ' + breakdown.key + ' for user ' + opts.uid);
+            }
             console.log(elemId);
         }
     });
@@ -311,12 +331,12 @@ $(document).ready( function () {
                     $.when(getData('challenge', slug)).then(function () {
                         drawPie(challenge.data.summary, 'chart-challenge-summary');
                         drawHistory(challenge.data.historical, 'chart-challenge-history');
-                        drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
+                        drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown', {});
                     });
                 } else {
                     drawPie(challenge.data.summary, 'chart-challenge-summary');
                     drawHistory(challenge.data.historical, 'chart-challenge-history');
-                    drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
+                    drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown', {});
                 }
             }
         });
@@ -333,15 +353,21 @@ $(document).ready( function () {
                     $.when(getData('user', uid)).then(function () {
                         drawPie(user.data.summary, 'chart-user-summary');
                         drawHistory(user.data.historical, 'chart-user-history');
-                        drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
+                        drawBreakdown(user.data.breakdown, 'chart-user-breakdown', {'uid': uid});
                     });
                 } else {
                     drawPie(user.data.summary, 'chart-user-summary');
                     drawHistory(user.data.historical, 'chart-user-history');
-                    drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
+                    drawBreakdown(user.data.breakdown, 'chart-user-breakdown', {'uid': uid});
                 }
             }
         });
+    });
+
+    // hook up the machine statuses checkbox
+    $('#chk_machinestatuses').change(function() {
+        showMachineStatuses = this.checked;
+        console.log('machine statuses rendered: ' + showMachineStatuses);
     });
 
     // draw the overall history chart
