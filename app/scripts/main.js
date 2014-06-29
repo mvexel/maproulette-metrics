@@ -58,7 +58,7 @@ function asPieData(data){
             var row = {};
             row.label = k;
             row.value = v;
-            row.color = colors[k];
+            //row.color = colors[k];
             result.push(row);
         }
     });
@@ -368,6 +368,7 @@ $(document).ready( function () {
     $('#chk_machinestatuses').change(function() {
         showMachineStatuses = this.checked;
         console.log('machine statuses rendered: ' + showMachineStatuses);
+        redrawAllCharts();
     });
 
     // draw the overall history chart
