@@ -1,7 +1,7 @@
 /*global d3:false, nv:false*/
 'use strict';
-//var uriBase = 'http://maproulette.org/api/';
-var uriBase = 'http://dev.maproulette.org/api/';
+var uriBase = 'http://maproulette.org/api/';
+//var uriBase = 'http://dev.maproulette.org/api/';
 //var uriBase = 'http://localhost:5000/api/';
 var challenges = [];
 var users = [];
