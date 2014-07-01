@@ -1,22 +1,11 @@
 /*global d3:false, nv:false*/
 'use strict';
-var uriBase = 'http://dev.maproulette.org/api/';
+//var uriBase = 'http://maproulette.org/api/';
+var uriBase = 'http://localhost:5000/api/';
 var challenges = [];
 var users = [];
 var overall = {};
-var exclude_statuses = ['created', 'deleted', 'editing', 'available', 'assigned'];
-var colors = {
-    'fixed': 'green',
-    'skipped': 'yellow',
-    'falsepositive': 'red',
-    'alreadyfixed': 'lightgreen',
-    'created': 'lightcyan',
-    'available': 'lightcyan',
-    'deleted': 'lightslategrey',
-    'editing': 'wheat',
-    'assigned': 'papayawhip'
-};
-
+var user_statuses = ['alreadyfixed', 'falsepositive', 'fixed', 'skipped'];
 var start_date = new Date('2014-01-01');
 var end_date = new Date();
 var drawnPieCharts = [];
@@ -24,18 +13,27 @@ var drawnHistoryCharts = [];
 var pieLabelFormat = 'percent';
 var showMachineStatuses = false;
 
+
 function asHistoricalData(data) {
     var transformedData = data.map( function(d) {
-        if (exclude_statuses.indexOf(d.key) > -1 && !showMachineStatuses) {
+        if (user_statuses.indexOf(d.key) === -1 && !showMachineStatuses) {
             console.log('skipping ' + d.key);
             return;
         }
         console.log('getting data for ' + start_date + ' to ' + end_date);
-        var series = [];
+        // Get the dates we need to output
+        var dates = [];
         for (var key in d.values) {
-            var date = new Date(key);
+            if (d.values.hasOwnProperty(key)) { dates.push(key); }
+        }
+        // sort them
+        dates.sort();
+        // and the value series for each date
+        var series = [];
+        for (var i = 0; i < dates.length; i++) {
+            var date = new Date(dates[i]);
             if (!(date < start_date || date > end_date)) {
-                series.push({'x': key, 'y': d.values[key]});
+                series.push({'x': dates[i], 'y': d.values[dates[i]]});
             }
         }
         return {'key': d.key, 'values': series};
@@ -54,7 +52,7 @@ function asHistoricalData(data) {
 function asPieData(data){
     var result = [];
     $.each(data, function( k, v ) {
-        if (exclude_statuses.indexOf(k) === -1) {
+        if (user_statuses.indexOf(k) > -1) {
             var row = {};
             row.label = k;
             row.value = v;
@@ -230,7 +228,8 @@ function drawBreakdown(data, selector, opts) {
     $.each(data, function( index, breakdown ) {
         if (breakdown.key !== null) {
             var isChallenge = opts && opts.uid;
-            var elemId = 'breakdown-' + breakdown.key.replace(/\s/g, '');
+            var elemId = 'breakdown-' + breakdown.key.replace(/[^a-zA-Z0-9]/g, '_');
+            console.log(elemId);
             $('#' + selector).append('<div class="breakdown"><h3>' + breakdown.key + '</h3><div id="' + elemId + '"><svg style="height:200px;width:200px"></div></div>');
             drawPie(breakdown.values, elemId);
             if (isChallenge) {
