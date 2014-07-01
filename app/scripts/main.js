@@ -1,8 +1,8 @@
 /*global d3:false, nv:false*/
 'use strict';
-var uriBase = 'http://maproulette.org/api/';
+//var uriBase = 'http://maproulette.org/api/';
 //var uriBase = 'http://dev.maproulette.org/api/';
-//var uriBase = 'http://localhost:5000/api/';
+var uriBase = 'http://localhost:5000/api/';
 var challenges = [];
 var users = [];
 var overall = {};
@@ -221,7 +221,7 @@ function getData(for_type, identifier) {
 
 function drawPie(data, selector) {
     // legends are for closers
-    var hasLegend = !selector.startsWith('breakdown');
+    var hasLegend = selector.indexOf('breakdown') === -1;
     // remove all existing content from the element
     d3.selectAll('#' + selector + ' svg > *').remove();
     // add the pie chart
