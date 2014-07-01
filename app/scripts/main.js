@@ -1,7 +1,8 @@
 /*global d3:false, nv:false*/
 'use strict';
 //var uriBase = 'http://maproulette.org/api/';
-var uriBase = 'http://localhost:5000/api/';
+var uriBase = 'http://dev.maproulette.org/api/';
+//var uriBase = 'http://localhost:5000/api/';
 var challenges = [];
 var users = [];
 var overall = {};
@@ -60,6 +61,60 @@ function asPieData(data){
     return result;
 }
 
+function getHistoricalData(opts) {
+    var hasChallenge = opts.hasOwnProperty('challenge_slug');
+    var hasUser = opts.hasOwnProperty('uid');
+    var uri = uriBase + 'stats';
+    if (hasChallenge) { uri += '/challenge/' + opts.challenge_slug; }
+    if (hasUser) { uri += '/user' + opts.uid; }
+    uri += '/history';
+
+    $.ajax({
+        url: uri,
+        dataType: 'json',
+        async: false,
+        success: function( data ) {
+            if (hasChallenge) {
+                // we have both a challenge and a user, store in challenge object
+                if (hasUser) {
+                    $.each(challenges, function(index, challenge) {
+                        if (challenge.slug === opts.challenge_slug) {
+                            if (!(users in challenges)) {
+                                challenges.users = {};
+                            }
+                            challenge.users[opts.uid] = data;
+                        }
+                    });
+                    return;
+                // we have just a challenge, store in challenge object
+                } else {
+                    $.each(challenges, function(index, challenge) {
+                        if (challenge.slug === opts.challenge_slug) {
+                            // var dataobj = {};
+                            // dataobj.historical = data;
+                            challenge.data.historical = data;
+                        }
+                    });
+                    return;
+                }
+            // we
+            } else if (hasUser) {
+                $.each(users, function(index, user) {
+                    if (user.id === parseInt(opts.uid)) {
+                        // var dataobj = {};
+                        // dataobj.historical = data;
+                        user.data.historical = data;
+                    }
+                });
+                return;
+            } else {
+                overall.historical = data;
+            }
+        }
+    });
+}
+
+// FIXME requires refactoring!
 function getData(for_type, identifier) {
     var uri = uriBase;
     if (for_type ==='user' || for_type === 'challenge') {
@@ -96,6 +151,7 @@ function getData(for_type, identifier) {
         }
     });
 
+    // FIXME this needs to be replaced by a call to getHistoricalData
     // now get and store history
     var histUri = uri + '/history';
     $.ajax({
@@ -219,22 +275,14 @@ function drawHistory(data, selector) {
     });
 }
 
-function drawBreakdown(data, selector, opts) {
+function drawBreakdown(data, selector) {
     console.log('will draw breakdown for ' + selector);
     $('#' + selector).empty();
     $.each(data, function( index, breakdown ) {
         if (breakdown.key !== null) {
-            var isChallenge = opts && opts.uid;
             var elemId = 'breakdown-' + breakdown.key.replace(/[^a-zA-Z0-9]/g, '_');
-            console.log(elemId);
             $('#' + selector).append('<div class="breakdown"><h3>' + breakdown.key + '</h3><div id="' + elemId + '"><svg style="height:200px;width:200px"></div></div>');
             drawPie(breakdown.values, elemId);
-            if (isChallenge) {
-                // also draw the history for this user
-                // FIXME implement
-                console.log('here we would draw the history for ' + breakdown.key + ' for user ' + opts.uid);
-            }
-            console.log(elemId);
         }
     });
 }
@@ -323,22 +371,25 @@ $(document).ready( function () {
         var slug = $(this).find('option:selected').attr('value');
         $.each( challenges, function( index, challenge ) {
             if(challenge.slug === slug) {
+                // if we don't have the challenge data yet, get it.
                 if (challenge.data === null) {
                     $.when(getData('challenge', slug)).then(function () {
                         drawPie(challenge.data.summary, 'chart-challenge-summary');
                         drawHistory(challenge.data.historical, 'chart-challenge-history');
-                        drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown', {});
+                        drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
                     });
+                // or else redraw
                 } else {
                     drawPie(challenge.data.summary, 'chart-challenge-summary');
                     drawHistory(challenge.data.historical, 'chart-challenge-history');
-                    drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown', {});
+                    drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
                 }
             }
         });
     });
 
     // attach handler for user select box
+
     $('#user-select').change( function() {
         $(this).find('option[value="0"]').remove();
         var uid = parseInt($(this).find('option:selected').attr('value'));
@@ -349,12 +400,12 @@ $(document).ready( function () {
                     $.when(getData('user', uid)).then(function () {
                         drawPie(user.data.summary, 'chart-user-summary');
                         drawHistory(user.data.historical, 'chart-user-history');
-                        drawBreakdown(user.data.breakdown, 'chart-user-breakdown', {'uid': uid});
+                        drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
                     });
                 } else {
                     drawPie(user.data.summary, 'chart-user-summary');
                     drawHistory(user.data.historical, 'chart-user-history');
-                    drawBreakdown(user.data.breakdown, 'chart-user-breakdown', {'uid': uid});
+                    drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
                 }
             }
         });
