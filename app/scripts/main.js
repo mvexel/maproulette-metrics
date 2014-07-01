@@ -14,14 +14,35 @@ var drawnHistoryCharts = [];
 var pieLabelFormat = 'percent';
 var showMachineStatuses = false;
 
+function dataForChallenge(slug) {
+    console.log('getting challenge data ' + slug);
+    for (var i = 0; i < challenges.length; i++) {
+        var challenge = challenges[i];
+        if (challenge.slug === slug) {
+            console.log('returning ' + challenge.slug);
+            return challenge;
+        }
+    }
+    return null;
+}
+
+function dataForUser(uid) {
+    console.log('getting user data ' + uid);
+    for (var i = 0; i < users.length; i++) {
+        var user = users[i];
+        if (user.id === uid) {
+            console.log('returning ' + uid);
+            return user;
+        }
+    }
+    return null;
+}
 
 function asHistoricalData(data) {
     var transformedData = data.map( function(d) {
         if (user_statuses.indexOf(d.key) === -1 && !showMachineStatuses) {
-            console.log('skipping ' + d.key);
             return;
         }
-        console.log('getting data for ' + start_date + ' to ' + end_date);
         // Get the dates we need to output
         var dates = [];
         for (var key in d.values) {
@@ -66,7 +87,7 @@ function getHistoricalData(opts) {
     var hasUser = opts.hasOwnProperty('uid');
     var uri = uriBase + 'stats';
     if (hasChallenge) { uri += '/challenge/' + opts.challenge_slug; }
-    if (hasUser) { uri += '/user' + opts.uid; }
+    if (hasUser) { uri += '/user/' + opts.uid; }
     uri += '/history';
 
     $.ajax({
@@ -77,12 +98,12 @@ function getHistoricalData(opts) {
             if (hasChallenge) {
                 // we have both a challenge and a user, store in challenge object
                 if (hasUser) {
-                    $.each(challenges, function(index, challenge) {
-                        if (challenge.slug === opts.challenge_slug) {
-                            if (!(users in challenges)) {
-                                challenges.users = {};
+                    $.each(users, function(index, user) {
+                        if (user.id === parseInt(opts.uid)) {
+                            if (!user.hasOwnProperty('challenges')) {
+                                user.challenges = {};
                             }
-                            challenge.users[opts.uid] = data;
+                            user.challenges[opts.challenge_slug] = data;
                         }
                     });
                     return;
@@ -151,35 +172,12 @@ function getData(for_type, identifier) {
         }
     });
 
-    // FIXME this needs to be replaced by a call to getHistoricalData
-    // now get and store history
-    var histUri = uri + '/history';
-    $.ajax({
-        url: histUri,
-        dataType: 'json',
-        async: false,
-        success: function( data ) {
-            if (for_type === 'challenge') {
-                $.each(challenges, function(index, challenge) {
-                    if (challenge.slug === identifier) {
-                        // var dataobj = {};
-                        // dataobj.historical = data;
-                        challenge.data.historical = data;
-                    }
-                });
-            } else if (for_type === 'user') {
-                $.each(users, function(index, user) {
-                    if (user.id === parseInt(identifier)) {
-                        // var dataobj = {};
-                        // dataobj.historical = data;
-                        user.data.historical = data;
-                    }
-                });
-            } else {
-                overall.historical = data;
-            }
-        }
-    });
+    // get historical data
+    var key = for_type === 'challenge' ? 'challenge_slug' : 'uid';
+    var opts = {};
+    if (identifier !== null) { opts[key] = identifier; }
+
+    getHistoricalData(opts);
 
     // get breakdown
     if ( for_type === 'challenge' || for_type === 'user' ) {
@@ -196,6 +194,7 @@ function getData(for_type, identifier) {
                             // var dataobj = {};
                             // dataobj.historical = data;
                             challenge.data.breakdown = data;
+                            console.log('breakdown data: ' + data);
                         }
                     });
                 } else if (for_type === 'user') {
@@ -204,6 +203,12 @@ function getData(for_type, identifier) {
                             // var dataobj = {};
                             // dataobj.historical = data;
                             user.data.breakdown = data;
+                            // for users, get challenge histories as well.
+                            for (var i = 0 ; i < data.length ; i++) {
+                                var challenge_slug = (data[i].key);
+                                var uid = user.id;
+                                getHistoricalData({'challenge_slug': challenge_slug, 'uid': uid});
+                            }
                         }
                     });
                 } else {
@@ -215,7 +220,6 @@ function getData(for_type, identifier) {
 }
 
 function drawPie(data, selector) {
-    console.log('will draw pie chart at ' + selector);
     // legends are for closers
     var hasLegend = !selector.startsWith('breakdown');
     // remove all existing content from the element
@@ -236,13 +240,11 @@ function drawPie(data, selector) {
             .call(chart);
 
         drawnPieCharts.push([data, selector]);
-        console.log('we now have ' + drawnPieCharts.length + ' pie charts drawn');
         return chart;
     });
 }
 
 function drawHistory(data, selector) {
-    console.log('will draw history chart at ' + selector);
     // remove all existing content from the element
     d3.selectAll('#' + selector + ' svg > *').remove();
     // add the compund bar chart
@@ -269,20 +271,34 @@ function drawHistory(data, selector) {
         nv.utils.windowResize(chart.update);
 
         drawnHistoryCharts.push([data, selector]);
-        console.log('we now have ' + drawnHistoryCharts.length + ' history charts drawn');
 
         return chart;
     });
 }
 
-function drawBreakdown(data, selector) {
-    console.log('will draw breakdown for ' + selector);
+function asSafeSelectorString(s) {
+    return s.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+function drawBreakdown(opts) {
+    var hasUser = opts.hasOwnProperty('uid');
+    var selector = 'chart-';
+    selector += hasUser ? 'user-breakdown' : 'challenge-breakdown';
     $('#' + selector).empty();
-    $.each(data, function( index, breakdown ) {
+    var d = hasUser ? dataForUser(opts.uid) : dataForChallenge(opts.challenge_slug);
+    $.each(d.data.breakdown, function( index, breakdown ) {
         if (breakdown.key !== null) {
-            var elemId = 'breakdown-' + breakdown.key.replace(/[^a-zA-Z0-9]/g, '_');
-            $('#' + selector).append('<div class="breakdown"><h3>' + breakdown.key + '</h3><div id="' + elemId + '"><svg style="height:200px;width:200px"></div></div>');
+            var elemId = 'breakdown-' + asSafeSelectorString(breakdown.key);
+            // FIXME unsafe
+            $('#' + selector).append('<div class="breakdown"><h3>' + breakdown.key + '</h3><div><span id="' + elemId + '"><svg style="height:200px;width:200px"></span>');
             drawPie(breakdown.values, elemId);
+            if (hasUser) {
+                console.log('will also draw challenge history for this user: ' + d.id + ' and challenge: ' + breakdown.key);
+                elemId += '-history';
+                $('#' + selector).append('<span id="' + elemId + '"><svg style="height:200px;width:500px"></span>');
+                drawHistory(d.challenges[breakdown.key], elemId);
+            }
+            $('#' + selector).append('</div></div>');
         }
     });
 }
@@ -321,12 +337,10 @@ $(document).ready( function () {
     }).on('changeDate', function(e){
         if ($(e.target).attr('id') === 'date-start') {
             start_date = e.date;
-            console.log('start date set to ' + start_date);
             redrawAllCharts();
         }
         if ($(e.target).attr('id') === 'date-end') {
             end_date = e.date;
-            console.log('end date set to ' + end_date);
             redrawAllCharts();
         }
     });
@@ -373,16 +387,17 @@ $(document).ready( function () {
             if(challenge.slug === slug) {
                 // if we don't have the challenge data yet, get it.
                 if (challenge.data === null) {
+                    console.log('need to go get data for ' + challenge.slug);
                     $.when(getData('challenge', slug)).then(function () {
                         drawPie(challenge.data.summary, 'chart-challenge-summary');
                         drawHistory(challenge.data.historical, 'chart-challenge-history');
-                        drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
+                        drawBreakdown({'challenge_slug': slug});
                     });
                 // or else redraw
                 } else {
                     drawPie(challenge.data.summary, 'chart-challenge-summary');
                     drawHistory(challenge.data.historical, 'chart-challenge-history');
-                    drawBreakdown(challenge.data.breakdown, 'chart-challenge-breakdown');
+                    drawBreakdown({'challenge_slug': slug});
                 }
             }
         });
@@ -397,15 +412,16 @@ $(document).ready( function () {
         $.each( users, function( index, user ) {
             if(user.id === uid) {
                 if (user.data === null) {
+                    console.log('need to go get data for ' + user.id);
                     $.when(getData('user', uid)).then(function () {
                         drawPie(user.data.summary, 'chart-user-summary');
                         drawHistory(user.data.historical, 'chart-user-history');
-                        drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
+                        drawBreakdown({'uid': uid});
                     });
                 } else {
                     drawPie(user.data.summary, 'chart-user-summary');
                     drawHistory(user.data.historical, 'chart-user-history');
-                    drawBreakdown(user.data.breakdown, 'chart-user-breakdown');
+                    drawBreakdown({'uid': uid});
                 }
             }
         });
