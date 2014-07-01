@@ -51,15 +51,12 @@ function asHistoricalData(data) {
 
 function asPieData(data){
     var result = [];
-    $.each(data, function( k, v ) {
-        if (user_statuses.indexOf(k) > -1) {
-            var row = {};
-            row.label = k;
-            row.value = v;
-            //row.color = colors[k];
-            result.push(row);
-        }
-    });
+    for (var i = 0; i < user_statuses.length; i++) {
+        var row = {};
+        row.label = user_statuses[i];
+        row.value = user_statuses[i] in data ? data[user_statuses[i]] : 0;
+        result.push(row);
+    }
     return result;
 }
 
